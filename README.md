@@ -152,8 +152,10 @@ logging — so a provider can be tested and reused on its own.
 ## Screenshots
 
 The web interface — the chat, the live provider pool, and adding access:
+<img width="1919" height="885" alt="Снимок экрана 2026-08-18 185055" src="https://github.com/user-attachments/assets/730c4d0e-af65-4c3a-b95f-7e99c2ffe07d" />
+<img width="1919" height="888" alt="Снимок экрана 2026-08-18 185108" src="https://github.com/user-attachments/assets/2c9599fd-e810-4153-8755-9605fada5929" />
+<img width="1919" height="884" alt="Снимок экрана 2026-08-18 185125" src="https://github.com/user-attachments/assets/303a556d-c8c1-4953-b27b-926e9e0a9da3" />
 
-<!-- drop the screenshots here -->
 
 ## Disclaimer
 
