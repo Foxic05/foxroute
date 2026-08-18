@@ -1,0 +1,36 @@
+# foxroute dependencies.
+#
+# Install:  pip install -r requirements.txt
+
+# HTTP with a real browser's fingerprint — the layer's main transport.
+curl_cffi
+
+# Async HTTP (some web providers and file uploads).
+aiohttp
+aiohttp-socks          # socks5 proxy for aiohttp
+
+# WebSocket: async (websockets) and sync (websocket-client).
+websockets
+websocket-client
+
+# Gemini web session — a third-party reverse-engineering library.
+gemini-webapi
+
+# Grok — protobuf frame parsing and request building (required for grok).
+grok3api
+
+# DeepSeek computes a WASM proof-of-work on every request — without this
+# package the DeepSeek provider does not work.
+wasmtime
+
+# ── optional ─────────────────────────────────────────────────────────
+# gemini_api (Google's official API). The Gemini web session does NOT need
+# it — gemini-webapi above is enough. Uncomment if you want the API itself:
+# google-generativeai
+# g4f (gpt4free, GPL-3.0) is needed ONLY for drawing via Qwen — the adapter
+# imports it lazily; without the package that feature is simply absent.
+# Uncomment if you need Qwen image generation:
+# g4f
+#
+# z.ai CAPTCHA bypass — a separate Node dependency, NOT pip:
+#   npm i puppeteer-core   (the node_modules path is set via FOXROUTE_NODE_PATH)

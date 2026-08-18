@@ -1,0 +1,47 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# The user's data directory: cookies, tokens, quota stats. FOXROUTE_HOME
+# points here too. NEVER goes into the repository.
+/data/
+accounts.json
+*_cookies.json
+*_tokens.json
+meta_ws_auth.json
+alice_sent_frame.json
+settings.json
+cache/
+
+# The package's factory data — the opposite: it MUST be in the repository.
+# Without measurements.json the layer doesn't know provider windows; without
+# the wasm module DeepSeek can't compute the request signature.
+!foxroute/data/
+!foxroute/data/*
+
+# ── Not for the public repository (kept locally) ─────────────────────
+# Reference sources, used only for protocol cross-checks — not our code.
+reference/
+# Internal vulnerability report — a map of weak spots, needless in public.
+audit.json
+# Working scratch file with model lists — not for the repository.
+wr.txt
+# One-off protocol-capture debug scripts (not tools).
+bench/alice_grab_frame.py
+bench/alice_watch_upload.py
+bench/capture_alice_frame.py
+bench/capture_request.py
+bench/zai_watch_upload.py
+bench/try_gateway.py
+bench/test_alice_conv.py
+bench/test_meta_conv.py
+bench/test_meta_conv2.py
+bench/test_meta_conv3.py
+bench/test_meta_conv4.py
+bench/test_meta_conv5.py
+# Internal debug/ops scripts — a user doesn't need them.
+bench/provider_ui.py
+bench/check_accounts.py
+bench/push_cookie.py
+docs/deploy.md

@@ -1,0 +1,135 @@
+{
+ "_": [
+  "Характеристики провайдеров, снятые на живых сервисах.",
+  "",
+  "Это ДАННЫЕ, а не константы: они протухают. context_chars меряется",
+  "двумя маркерами, в начале и конце входа — важно, потому что чат-",
+  "фронтенд может обрезать вход молча, и заявленное окно модели тут",
+  "ничего не значит. agentic снимается настоящей задачей отладки с",
+  "исполнением команд.",
+  "",
+  "agentic: good — доводит задачу; short — идёт верно, но умирает от",
+  "квоты за 5-7 ходов; no — в цикл не пускать; unknown — не проверялся.",
+  "provisional: true — цифры не подтверждены прогоном, доверять нельзя."
+ ],
+ "measured_at": "2026-08-06",
+ "providers": {
+  "deepseek": {
+   "context_chars": 200000,
+   "median_turn_sec": 2.8,
+   "agentic": "good",
+   "note": "Читает документы, но не картинки"
+  },
+  "qwen": {
+   "context_chars": 200000,
+   "median_turn_sec": 2.3,
+   "agentic": "good",
+   "note": "Рисует картинки"
+  },
+  "kimi": {
+   "context_chars": 200000,
+   "median_turn_sec": 2.0,
+   "agentic": "good",
+   "note": "Обновляет refresh-токен сам"
+  },
+  "zai": {
+   "context_chars": 200000,
+   "median_turn_sec": 4.8,
+   "agentic": "good",
+   "note": "Ключ не нужен, но капча требует Node + Puppeteer"
+  },
+  "gemini_web": {
+   "context_chars": 100000,
+   "median_turn_sec": 9.1,
+   "agentic": "good"
+  },
+  "chatgpt": {
+   "context_chars": 48000,
+   "median_turn_sec": 3.8,
+   "agentic": "good",
+   "note": "access_token одноразовый, кешировать нельзя; выше ~100k символов входа — HTTP 500"
+  },
+  "alice": {
+   "context_chars": 48000,
+   "median_turn_sec": 1.4,
+   "agentic": "good"
+  },
+  "mistral": {
+   "context_chars": 48000,
+   "median_turn_sec": 5.5,
+   "agentic": "short",
+   "note": "Окно бюджета при отказе — около 168 минут",
+   "provisional": true
+  },
+  "ms_copilot": {
+   "context_chars": 48000,
+   "median_turn_sec": 1.6,
+   "agentic": "short",
+   "note": "Отказ — троттл (оживает ~25 минут), не бюджет; expires_at хранить абсолютным временем",
+   "provisional": true
+  },
+  "perplexity": {
+   "context_chars": 16000,
+   "median_turn_sec": 4.4,
+   "agentic": "no",
+   "note": "Самый хрупкий адаптер"
+  },
+  "deepai": {
+   "context_chars": 4000,
+   "median_turn_sec": 1.9,
+   "agentic": "no",
+   "note": "Теряет длинный вход уже выше ~4k символов"
+  },
+  "groq": {
+   "context_chars": 16000,
+   "median_turn_sec": 2.9,
+   "agentic": "no",
+   "note": "Выше своего окна входа отдаёт HTTP 413"
+  },
+  "agentrouter": {
+   "context_chars": 16000,
+   "median_turn_sec": 50.0,
+   "agentic": "good",
+   "note": "Тормозной релей, рвётся в 504. Платный"
+  },
+  "gemini_api": {
+   "context_chars": 200000,
+   "median_turn_sec": 0.4,
+   "agentic": "good",
+   "note": "Быстрейший; официальный API-ключ, не веб-сессия"
+  },
+  "grok": {
+   "context_chars": 16000,
+   "median_turn_sec": 22.0,
+   "agentic": "unknown",
+   "note": "18–26 секунд на ответ",
+   "provisional": true
+  },
+  "meta_ai": {
+   "context_chars": 16000,
+   "median_turn_sec": 35.0,
+   "agentic": "no",
+   "note": "Отвергает промпты с инструментами как «попытку подменить среду»",
+   "provisional": true
+  },
+  "manus": {
+   "context_chars": 16000,
+   "median_turn_sec": 58.0,
+   "agentic": "no",
+   "note": "Агент, а не чат-модель: поднимает виртуальную машину на каждое сообщение",
+   "provisional": true
+  },
+  "poe": {
+   "context_chars": 16000,
+   "median_turn_sec": 10.0,
+   "agentic": "unknown",
+   "provisional": true
+  },
+  "pi": {
+   "context_chars": 16000,
+   "median_turn_sec": 5.0,
+   "agentic": "unknown",
+   "provisional": true
+  }
+ }
+}

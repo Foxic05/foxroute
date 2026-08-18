@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FoxyGPT</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M2.8 3.2 12.4 9.6h7.2L29.2 3.2v13.6c0 6.9-5.9 12.4-13.2 12.4S2.8 23.7 2.8 16.8Z' fill='%23FF8A3D'/%3E%3Cpath d='M9.6 14.6 13.8 16.4 9.6 18.2Z' fill='%23191210'/%3E%3Cpath d='M22.4 14.6 18.2 16.4 22.4 18.2Z' fill='%23191210'/%3E%3Cpath d='M12.6 21h6.8L16 27.2Z' fill='%23FFE9D6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap&subset=cyrillic,latin" rel="stylesheet">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+<aside class="rail" id="rail">
+  <div class="rail-brand">
+    <svg class="fox-logo" width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M2.8 3.2 12.4 9.6h7.2L29.2 3.2v13.6c0 6.9-5.9 12.4-13.2 12.4S2.8 23.7 2.8 16.8Z" fill="#FF8A3D"/><path d="M9.6 14.6 13.8 16.4 9.6 18.2Z" fill="#191210"/><path d="M22.4 14.6 18.2 16.4 22.4 18.2Z" fill="#191210"/><path d="M12.6 21h6.8L16 27.2Z" fill="#FFE9D6"/></svg>
+    <span class="brand-name">Foxy<span class="brand-gpt">GPT</span></span>
+  </div>
+
+  <button class="new-chat" id="new-chat">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    <span data-i18n="Новый чат">Новый чат</span>
+  </button>
+
+  <div class="rail-search" id="rail-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="text" id="thread-search" data-i18n-placeholder="Поиск по чатам" placeholder="Поиск по чатам" autocomplete="off">
+  </div>
+
+  <nav class="threads" id="threads"></nav>
+
+  <footer class="rail-foot">
+    <div class="pool-mini" id="pool-mini">
+      <div class="pool-mini-head">
+        <span data-i18n="Пул провайдеров">Пул провайдеров</span>
+        <span class="pool-mini-count" id="pool-mini-count">—</span>
+      </div>
+      <div class="pool-mini-grid" id="pool-mini-grid"></div>
+      <button class="plan-row plan-toggle" id="plan-toggle">
+        <span class="plan-label" data-i18n="Запросов сегодня">Запросов сегодня</span>
+        <span class="plan-count" id="plan-count">0</span>
+      </button>
+    </div>
+  </footer>
+</aside>
+
+<main class="stage">
+  <header class="bar">
+    <button class="icon" id="toggle-rail">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+    <div class="picker" id="picker">
+      <button class="picker-button" id="picker-button">
+        <span class="dot" id="picked-dot"></span>
+        <span class="picked-name" id="picked-name" data-i18n="Авто">Авто</span>
+        <span class="picked-note" id="picked-note" data-i18n="выберет сам">выберет сам</span>
+        <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <div class="picker-menu" id="picker-menu" hidden></div>
+    </div>
+    <span class="bar-spacer"></span>
+    <span class="status-badge" id="who"></span>
+    <button class="keys-toggle" id="keys-toggle" data-i18n-title="Настройки: доступы, прокси" title="Настройки: доступы, прокси">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.61.79 1.03 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span data-i18n="Настройки">Настройки</span>
+      <span class="keys-count" id="keys-count">—</span>
+    </button>
+    <button class="icon theme-toggle" id="theme-toggle" data-i18n-title="Тема" title="Тема">
+      <svg class="ic-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      <svg class="ic-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>
+    </button>
+    <button class="icon" id="lang-toggle" title="Русский · English">EN</button>
+  </header>
+
+  <section class="thread" id="thread">
+    <div class="empty" id="empty">
+      <svg class="hero-tail" viewBox="0 0 200 120" fill="none" aria-hidden="true"><path d="M10 114C10 62 44 20 100 8c42-9 78 8 96 38-30-12-58-6-80 12-24 20-40 38-72 52-12 5-34 8-34 4Z" fill="#FF8A3D"/></svg>
+      <svg class="hero-fox" width="58" height="58" viewBox="0 0 32 32" fill="none"><path d="M2.8 3.2 12.4 9.6h7.2L29.2 3.2v13.6c0 6.9-5.9 12.4-13.2 12.4S2.8 23.7 2.8 16.8Z" fill="#FF8A3D"/><path d="M9.6 14.6 13.8 16.4 9.6 18.2Z" fill="#191210"/><path d="M22.4 14.6 18.2 16.4 22.4 18.2Z" fill="#191210"/><path d="M12.6 21h6.8L16 27.2Z" fill="#FFE9D6"/><circle cx="16" cy="22.4" r="1.4" fill="#191210"/></svg>
+      <h1><span data-i18n="О чём">О чём</span> <span class="gradient-text" data-i18n="поговорим?">поговорим?</span></h1>
+      <p data-i18n="Хитрая лисичка сама выберет живую модель, обойдёт лимиты и озвучит ответ. Ты просто спрашивай.">Хитрая лисичка сама выберет живую модель, обойдёт лимиты и озвучит ответ. Ты просто спрашивай.</p>
+      <div class="suggestions" id="suggestions">
+        <button class="sug-card">
+          <span class="sug-icon sug-purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>
+          <span class="sug-text"><strong data-i18n="Объясни, зачем нужен индекс в базе данных">Объясни, зачем нужен индекс в базе данных</strong><small data-i18n="Простыми словами">Простыми словами</small></span>
+        </button>
+        <button class="sug-card">
+          <span class="sug-icon sug-green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></span>
+          <span class="sug-text"><strong data-i18n="Напиши функцию на Python для разбора CSV">Напиши функцию на Python для разбора CSV</strong><small data-i18n="С примерами">С примерами</small></span>
+        </button>
+        <button class="sug-card">
+          <span class="sug-icon sug-pink"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg></span>
+          <span class="sug-text"><strong data-i18n="Чем отличается процесс от потока">Чем отличается процесс от потока</strong><small data-i18n="Примеры и сравнение">Примеры и сравнение</small></span>
+        </button>
+        <button class="sug-card">
+          <span class="sug-icon sug-amber"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>
+          <span class="sug-text"><strong data-i18n="Нарисуй кота в скандинавском стиле">Нарисуй кота в скандинавском стиле</strong><small data-i18n="На Луне 🌙">На Луне 🌙</small></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="composer-area">
+    <div class="voice-bar" id="voice-bar">
+      <div class="voice-inner" id="tts-engines">
+        <span class="voice-label" data-i18n="Озвучка:">Озвучка:</span>
+      </div>
+      <div class="voice-inner" id="tts-voices">
+        <span class="voice-label" data-i18n="Голос:">Голос:</span>
+      </div>
+    </div>
+    <div class="voice-bar" id="image-bar"><div class="voice-inner" id="image-inner">
+      <span class="voice-label" data-i18n="Рисует:">Рисует:</span>
+    </div></div>
+    <div class="composer-box" id="composer-box">
+      <form class="composer" id="composer">
+        <div class="attachments" id="attachments" hidden></div>
+        <div class="composer-row">
+          <label class="attach-btn" id="attach" data-i18n-title="Прикрепить файл" title="Прикрепить файл">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 11.5 12 19a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg>
+            <input type="file" id="file-input" hidden multiple>
+          </label>
+          <textarea id="input" rows="1" data-i18n-placeholder="Спроси что-нибудь…" placeholder="Спроси что-нибудь…" autocomplete="off"></textarea>
+          <button type="button" class="mic-btn" id="mic" data-i18n-title="Надиктовать — распознаем речь и вставим текстом" title="Надиктовать — распознаем речь и вставим текстом">
+            <svg class="ic-mic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+            <svg class="ic-stop" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+          </button>
+          <button type="submit" id="send" data-i18n-title="Отправить" title="Отправить">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 11h12.2l-5.6-5.6L12 4l8 8-8 8-1.4-1.4 5.6-5.6H4z" fill="currentColor"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="composer-under">
+      <div class="under-tools">
+        <button type="button" class="under-btn" id="btn-think" data-i18n-title="Глубокое размышление" title="Глубокое размышление">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 017 7c0 2.4-1.2 4.5-3 5.7V17a2 2 0 01-2 2h-4a2 2 0 01-2-2v-2.3C6.2 13.5 5 11.4 5 9a7 7 0 017-7z"/><path d="M9 22h6"/></svg>
+          Think
+        </button>
+        <button type="button" class="under-btn" id="btn-web" data-i18n-title="Искать в сети — ответ с опорой на живую выдачу" title="Искать в сети — ответ с опорой на живую выдачу">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>
+          <span data-i18n="Поиск">Поиск</span>
+        </button>
+        <button type="button" class="under-btn" id="btn-deep" data-i18n-title="Глубокое исследование — несколько поисков и сводка со ссылками. Идёт дольше обычного ответа" title="Глубокое исследование — несколько поисков и сводка со ссылками. Идёт дольше обычного ответа">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/><path d="M11 8v6M8 11h6"/></svg>
+          <span data-i18n="Исследовать">Исследовать</span>
+        </button>
+        <button type="button" class="under-btn" id="btn-image" data-i18n-title="Генерация картинки" title="Генерация картинки">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span data-i18n="Картинка">Картинка</span>
+        </button>
+        <button type="button" class="under-btn" id="btn-audio" data-i18n-title="Озвучить текст голосом" title="Озвучить текст голосом">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7M19 5a9 9 0 010 14"/></svg>
+          <span data-i18n="Озвучка">Озвучка</span>
+        </button>
+      </div>
+      <div class="under-hints">
+        Enter — <span data-i18n="отправить">отправить</span>&nbsp;&nbsp;·&nbsp;&nbsp;Shift+Enter — <span data-i18n="перенос">перенос</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="pool-backdrop" id="pool-backdrop" hidden></div>
+<aside class="pool" id="pool" hidden>
+  <header class="pool-head">
+    <div>
+      <h2 data-i18n="Пул провайдеров">Пул провайдеров</h2>
+      <p class="pool-note" id="pool-note"></p>
+    </div>
+    <button class="icon" id="close-pool"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </header>
+  <div class="pool-tabs">
+    <button class="pool-tab active" data-tab="all" data-i18n="Все">Все</button>
+    <button class="pool-tab" data-tab="web" data-i18n="Веб">Веб</button>
+    <button class="pool-tab" data-tab="api">API</button>
+    <button class="pool-tab" data-tab="images" data-i18n="Картинки">Картинки</button>
+  </div>
+  <div class="pool-list" id="pool-list"></div>
+</aside>
+
+<div class="pool-backdrop" id="keys-backdrop" hidden></div>
+<aside class="pool keys" id="keys" hidden>
+  <header class="pool-head">
+    <div>
+      <h2 data-i18n="Настройки">Настройки</h2>
+      <p class="pool-note" data-i18n="Всё лежит только у тебя на машине">Всё лежит только у тебя на машине</p>
+    </div>
+    <button class="icon" id="close-keys"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </header>
+
+  <div class="settings-nav">
+    <button class="settings-navtab active" data-pane="access" data-i18n="Доступы">Доступы</button>
+    <button class="settings-navtab" data-pane="proxy" data-i18n="Прокси">Прокси</button>
+  </div>
+
+  <div class="settings-pane" data-pane="proxy" hidden>
+    <section class="settings-proxy">
+    <h3 class="settings-h" data-i18n="Прокси">Прокси</h3>
+    <p class="settings-sub" data-i18n="Через него пойдут и вход в браузере, и все запросы провайдеров. Куки снимаются под IP прокси — с него же и работают.">Через него пойдут и вход в браузере, и все запросы
+      провайдеров. Куки снимаются под IP прокси — с него же и работают.</p>
+    <div class="proxy-row">
+      <input type="text" class="proxy-input" id="proxy-input" spellcheck="false"
+             autocomplete="off"
+             data-i18n-placeholder="socks5://user:pass@host:port или http://host:port"
+             placeholder="socks5://user:pass@host:port или http://host:port">
+      <button class="proxy-save" id="proxy-save" data-i18n="Сохранить">Сохранить</button>
+      <button class="proxy-test" id="proxy-test" data-i18n="Проверить">Проверить</button>
+    </div>
+    <div class="proxy-result" id="proxy-result"></div>
+    <p class="settings-sub proxy-formats"><span data-i18n="Форматы:">Форматы:</span> <code>http://host:port</code>,
+      <code>http://user:pass@host:port</code>, <code>socks5://host:port</code>,
+      <code>socks5://user:pass@host:port</code>. <span data-i18n="Пусто — без прокси.">Пусто — без прокси.</span></p>
+    </section>
+  </div>
+
+  <div class="settings-pane" data-pane="access">
+  <div class="pool-tabs">
+    <button class="keys-tab active" data-filter="need" data-i18n="Нужен доступ">Нужен доступ</button>
+    <button class="keys-tab" data-filter="ready" data-i18n="Подключены">Подключены</button>
+    <button class="keys-tab" data-filter="free" data-i18n="Без доступа">Без доступа</button>
+  </div>
+  <details class="keys-help">
+    <summary data-i18n="Как завести доступ и что за 🟢🟡🔴">Как завести доступ и что за 🟢🟡🔴</summary>
+    <div class="keys-help-body">
+      <p><b data-i18n="Два способа.">Два способа.</b> <span data-i18n="«Войти в браузере» откроет чистое окно — логинишься там, оставляешь окно открытым, жмёшь «Забрать куки»: доступ снимется и проверится сам. «Вручную ↗» — открыть сайт, войти в своём браузере и вставить куку из F12 (что копировать, написано у каждого).">«Войти в браузере» откроет чистое окно —
+      логинишься там, оставляешь окно открытым, жмёшь «Забрать куки»: доступ
+      снимется и проверится сам. «Вручную ↗» — открыть сайт, войти в своём
+      браузере и вставить куку из F12 (что копировать, написано у каждого).</span></p>
+      <p><b data-i18n="Строгие сервисы.">Строгие сервисы.</b> <span data-i18n="DeepSeek и местами Google на автоматический вход могут ругаться «подозрительная среда». Их проще заводить вручную: войти в обычном браузере и вставить куку. Регистрировать новый аккаунт всегда лучше в своём браузере, а не в окне входа.">DeepSeek и местами Google на автоматический
+      вход могут ругаться «подозрительная среда». Их проще заводить вручную:
+      войти в обычном браузере и вставить куку. Регистрировать новый аккаунт
+      всегда лучше в своём браузере, а не в окне входа.</span></p>
+      <p><b data-i18n="Привязка к IP">Привязка к IP</b> <span data-i18n="— маркер у провайдера:">— маркер у провайдера:</span>
+      <span class="ip-lg good">🟢</span> <span data-i18n="адрес не важен, снимай где угодно ·">адрес не важен, снимай где угодно ·</span>
+      <span class="ip-lg warn">🟡</span> <span data-i18n="переезд обычно ок, но при смене страны сервис может переспросить ·">переезд обычно ок, но при смене страны
+      сервис может переспросить ·</span>
+      <span class="ip-lg crit">🔴</span> <span data-i18n="привязан к адресу — снимай там же, где будешь запускать. Проще всего заводить доступ на той же машине, где крутится роутер: тогда IP совпадает у всех.">привязан к адресу — снимай там же, где
+      будешь запускать. Проще всего заводить доступ на той же машине, где
+      крутится роутер: тогда IP совпадает у всех.</span></p>
+    </div>
+  </details>
+  <div class="pool-list" id="keys-list"></div>
+  </div>
+</aside>
+
+<script src="/app.js"></script>
+</body>
+</html>

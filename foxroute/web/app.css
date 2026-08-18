@@ -1,0 +1,1891 @@
+/* ═══════════════════════════════════════════════════════════════════
+   foxroute — по референсу: фиолетовый акцент, карточки подсказок с
+   цветными иконками, кнопки ВНУТРИ поля ввода, план в сайдбаре.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   FoxyGPT — «лисья нора». Тёплая угольно-коричневая база, один
+   оранжевый акцент, лисий знак. Палитра и правила из дизайн-проекта
+   «Редизайн AI-чата с лисичкой».
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Спрятанное должно быть спрятано. Без этого правила `hidden` бессилен
+   везде, где элементу задан свой display: у нас так были устроены и
+   скрепка (`.attach-btn`), и кнопки умений (`.under-btn`) — код честно
+   ставил атрибут, а `display: flex` его перебивал, и кнопка оставалась
+   на виду у провайдеров, которые этого не умеют. */
+[hidden] { display: none !important; }
+
+:root {
+  /* Фон не серый, а тёплый угольно-коричневый. */
+  --bg:         #0F0C0A;
+  --bg-rail:    #141110;
+  --raised:     #17120F;
+  --elevated:   #1A1512;
+  --float:      #241D18;
+
+  /* Тёплые границы, не серые. */
+  --edge:       #241C18;
+  --edge-hover: #2E2520;
+  --edge-warm:  #33281F;
+
+  /* Текст — кремовый, приглушённые тона уходят в коричневый. */
+  --ink:        #F6EEE7;
+  --ink-2:      #A08D80;
+  --ink-3:      #8A7568;
+  --ink-4:      #6E5D52;
+  --ink-mono:   #5C4E45;   /* моно-лейблы: uppercase, letter-spacing */
+
+  /* Акцент — только действия и статус, никогда фон блока целиком. */
+  --accent:     #FF8A3D;
+  --accent-hover:#FFB86B;
+  --accent-dark:#E8621A;
+  --accent-dim: rgba(255,138,61,.28);
+  --accent-wash:rgba(255,138,61,.08);
+  --accent-glow:rgba(255,138,61,.06);
+  --accent-ink: #1A1008;   /* текст на оранжевой заливке */
+
+  /* Статус пула. */
+  --live:       #62D2A0;
+  --live-dim:   rgba(98,210,160,.4);
+  --sleep:      #3A2E27;   /* спящий провайдер */
+  --warn:       #FFB86B;
+  --dead:       #E8621A;
+
+  --rail-w:     280px;
+  --pool-w:     360px;
+  --r:          16px;      /* карточки 14–20 */
+  --r-sm:       10px;      /* чипы 9–11 */
+  --r-pill:     100px;
+
+  --font-head:  "Unbounded", system-ui, sans-serif;
+  --font-body:  "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-mono:  "JetBrains Mono", "SF Mono", Consolas, monospace;
+
+  --ease:       cubic-bezier(.22,.68,0,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100dvh; }
+body {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.6 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; cursor: pointer; }
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sleep); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+/* Моно-лейбл: uppercase, разрядка — из дизайна (метрики, секции). */
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-mono);
+}
+
+
+/* ═══ RAIL ════════════════════════════════════════════════════════ */
+
+.rail {
+  width: var(--rail-w);
+  flex: 0 0 var(--rail-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-rail);
+  border-right: 1px solid var(--edge);
+  transition: margin-left .3s var(--ease);
+  z-index: 20;
+}
+.rail.hidden { margin-left: calc(var(--rail-w) * -1); }
+
+.rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 22px 14px;
+}
+.fox-logo { flex: 0 0 auto; }
+.brand-name {
+  font-family: var(--font-head);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  color: var(--ink);
+}
+.brand-gpt { color: var(--accent); }
+.brand-badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  padding: 3px 5px;
+  border-radius: 4px;
+  border: 1px solid #4A3018;
+  background: #22160D;
+  color: var(--accent);
+  letter-spacing: .1em;
+}
+
+/* Единственная оранжевая заливка в рейле — «Новый чат». */
+.new-chat {
+  margin: 4px 16px 14px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 13px;
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 15px;
+  transition: background .15s, box-shadow .2s;
+}
+.new-chat:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 6px 20px var(--accent-dim);
+}
+
+.rail-search {
+  margin: 0 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  background: var(--elevated);
+  border: 1px solid var(--edge);
+  color: var(--ink-4);
+}
+.rail-search input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.rail-search input::placeholder { color: var(--ink-4); }
+
+.threads { flex: 1; overflow-y: auto; padding: 0 8px; }
+
+.thread-group-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-mono);
+  padding: 12px 10px 5px;
+}
+
+.thread-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 0 10px;
+  height: 38px;
+  margin-bottom: 1px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+  transition: all .12s;
+}
+.thread-item::before {
+  content: "";
+  width: 15px; height: 15px;
+  flex: 0 0 15px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%236E5D52' stroke-width='1.8'%3E%3Cpath d='M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3Z'/%3E%3C/svg%3E") no-repeat center;
+}
+.thread-item:hover { background: var(--raised); color: var(--ink); }
+.thread-item.active {
+  background: #221B17;
+  color: var(--ink);
+  font-weight: 600;
+}
+/* Активный чат — оранжевая метка слева, как у дизайна. */
+.thread-item.active::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 9px; bottom: 9px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.thread-item.active::before {
+  filter: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23FF8A3D' stroke-width='1.9'%3E%3Cpath d='M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3Z'/%3E%3C/svg%3E") no-repeat center;
+}
+.thread-title { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.thread-drop {
+  opacity: 0; border: 0; background: transparent;
+  color: var(--ink-4); font-size: 14px; padding: 0 2px;
+}
+.thread-item:hover .thread-drop { opacity: 1; }
+.thread-drop:hover { color: var(--accent); }
+
+.rail-foot {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--edge);
+}
+
+/* Пул провайдеров в сайдбаре: сетка квадратиков вместо списка. */
+.pool-mini {
+  background: var(--elevated);
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.pool-mini-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.pool-mini-head span:first-child {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.pool-mini-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--live);
+}
+.pool-mini-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  cursor: pointer;
+}
+.pool-dot {
+  width: 9px; height: 9px;
+  border-radius: 3px;
+  background: var(--sleep);
+  transition: transform .12s;
+}
+.pool-dot.live { background: var(--live); }
+.pool-mini-grid:hover .pool-dot { transform: scale(1.08); }
+
+.plan-toggle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  padding: 11px 0 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--edge);
+  background: transparent;
+  cursor: pointer;
+}
+.plan-label { color: var(--ink-3); font-size: 12px; }
+.plan-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+}
+.plan-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--edge);
+  animation: fade-up .2s ease;
+}
+.plan-detail-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  padding: 3px 0;
+  color: var(--ink-3);
+}
+.plan-detail-num {
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+}
+
+
+/* ═══ STAGE ═══════════════════════════════════════════════════════ */
+
+.stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 28px;
+}
+.bar-spacer { flex: 1; }
+
+.icon {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  background: var(--raised); border: 1px solid var(--edge-hover);
+  border-radius: 10px;
+  color: var(--ink-3); transition: all .12s;
+}
+.icon:hover { background: var(--elevated); color: var(--ink-2); }
+
+.status-badge {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  letter-spacing: .06em;
+  padding: 4px 10px;
+  background: var(--raised);
+  border: 1px solid var(--edge);
+  border-radius: 20px;
+}
+.status-badge:empty { display: none; }
+
+/* picker — маршрут, как в дизайне (капсула, зелёная точка). */
+.picker { position: relative; }
+.picker-button {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px;
+  background: var(--raised);
+  border: 1px solid var(--edge-hover);
+  border-radius: 12px;
+  color: var(--ink);
+  transition: all .15s;
+}
+.picker-button:hover { border-color: var(--accent-dim); }
+.picked-name { font-weight: 700; font-size: 14px; }
+.picked-note { color: var(--ink-3); font-size: 13px; }
+.chevron { color: var(--ink-4); }
+
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ink-4); flex: 0 0 auto;
+}
+.dot.ready { background: var(--live); animation: foxpulse 2.4s ease-in-out infinite; }
+.dot.busy { background: var(--warn); }
+.dot.paused { background: var(--sleep); }
+/* Нет доступа — тусклая серая точка, не «живой» и не «занят». */
+.dot.locked { background: var(--ink-4); }
+/* Живая точка дышит — из дизайна (foxpulse). */
+@keyframes foxpulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(.82); }
+}
+
+/* Индикатор «лисичка думает» — три пульсирующие точки. */
+.dots { display: inline-flex; align-items: center; gap: 5px; padding: 4px 0; }
+.dots i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.dots i:nth-child(2) { animation-delay: .18s; }
+.dots i:nth-child(3) { animation-delay: .36s; }
+@keyframes dot-bounce {
+  0%, 60%, 100% { opacity: .3; transform: translateY(0) scale(.85); }
+  30% { opacity: 1; transform: translateY(-4px) scale(1); }
+}
+
+.picker-menu {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  width: 440px; max-height: 65vh; overflow-y: auto;
+  padding: 6px;
+  background: var(--elevated);
+  border: 1px solid var(--edge-hover);
+  border-radius: var(--r);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  z-index: 50;
+  animation: drop-in .2s var(--ease);
+}
+@keyframes drop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(.97); }
+}
+
+.group-label {
+  padding: 10px 10px 5px;
+  font-family: var(--font-mono);
+  font-size: 9px; font-weight: 500;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-mono);
+}
+/* Легенда цветов точек внизу выпадашки: серая «нужен вход» иначе читается
+   как поломка. */
+.picker-legend {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  padding: 9px 10px 5px; margin-top: 4px;
+  border-top: 1px solid var(--edge);
+  font-size: 11px; color: var(--ink-3);
+}
+.picker-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.picker-legend .dot { animation: none; }
+.option {
+  display: grid; grid-template-columns: 14px 1fr auto;
+  align-items: center; gap: 10px;
+  width: 100%; padding: 9px 10px;
+  background: transparent; border: 0; border-radius: 8px;
+  color: var(--ink); text-align: left; transition: all .12s;
+}
+.option:hover { background: var(--float); }
+.option.chosen { background: var(--accent-wash); box-shadow: inset 2px 0 0 var(--accent); }
+.option.unavailable { opacity: .35; }
+.option-name { font-size: 13px; font-weight: 500; }
+.option-sub { font-size: 11px; color: var(--ink-3); }
+.option-facts { display: flex; gap: 5px; font-size: 10.5px; }
+.tag {
+  padding: 2px 6px; border-radius: 4px;
+  background: var(--raised); border: 1px solid var(--edge);
+  color: var(--ink-3); font-family: "SF Mono", Consolas, monospace; font-size: 10px;
+}
+.tag.good { color: var(--live); border-color: rgba(52,211,153,.2); }
+
+
+/* ═══ EMPTY — hero ════════════════════════════════════════════════ */
+
+.thread { flex: 1; overflow-y: auto; padding: 20px 0 12px; }
+/* Пустой экран центрируем флексом, а не отступом: когда снизу появляется
+   ряд голосов и лента сжимается, hero не дёргается и не родит скролл. */
+.thread:has(.empty) {
+  display: flex;
+  flex-direction: column;
+  /* Скролл, а НЕ обрезка: при открытой панели голосов/картинок высоты не
+     хватает, и раньше overflow:hidden + центрирование срезали лисичку
+     сверху и карточки снизу. margin:auto центрирует hero, когда он
+     влезает, и отдаёт скролл, когда нет — тогда виден весь блок. */
+  overflow-y: auto;
+  padding: 12px 0;
+}
+.thread:has(.empty) .empty {
+  margin: auto;
+}
+
+.empty {
+  position: relative;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 24px;
+  text-align: center;
+  animation: fade-up .5s var(--ease);
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+}
+
+/* Хвост лисы — единственная иллюстрация, живёт фоном пустого экрана. */
+.hero-tail {
+  position: absolute;
+  width: 620px;
+  top: -20px; left: 50%;
+  transform: translateX(-50%);
+  opacity: .07;
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-fox {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 20px;
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.empty h1 {
+  position: relative; z-index: 1;
+  font-family: var(--font-head);
+  font-size: 44px; font-weight: 700;
+  letter-spacing: -.04em; margin-bottom: 10px;
+  animation: fade-up .5s var(--ease) backwards;
+  animation-delay: .06s;
+}
+.gradient-text { color: var(--accent); }
+.empty p {
+  position: relative; z-index: 1;
+  color: var(--ink-3); margin-bottom: 30px; font-size: 15px;
+  animation: fade-up .5s var(--ease) backwards;
+  animation-delay: .12s;
+}
+
+.suggestions {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; max-width: 720px; margin: 0 auto;
+}
+/* Карточки подсказок вплывают волной. */
+.sug-card { animation: fade-up .45s var(--ease) backwards; }
+.sug-card:nth-child(1) { animation-delay: .18s; }
+.sug-card:nth-child(2) { animation-delay: .26s; }
+.sug-card:nth-child(3) { animation-delay: .34s; }
+.sug-card:nth-child(4) { animation-delay: .42s; }
+
+.sug-card {
+  display: flex; align-items: center; gap: 13px;
+  padding: 16px 18px;
+  background: var(--raised);
+  border: 1px solid var(--edge-hover);
+  border-radius: 14px;
+  color: var(--ink); text-align: left;
+  transition: all .15s; cursor: pointer;
+}
+.sug-card:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+
+/* Иконка подсказки — тёмный квадрат с оранжевым знаком (из дизайна). */
+.sug-icon {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  flex: 0 0 34px;
+  background: var(--float);
+  color: var(--accent);
+}
+.sug-purple, .sug-green, .sug-pink, .sug-amber {
+  background: var(--float);
+  color: var(--accent);
+}
+
+.sug-text { display: flex; flex-direction: column; gap: 3px; }
+.sug-text strong { font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--ink); }
+.sug-text small { font-size: 12px; color: var(--ink-4); }
+
+
+/* ═══ MESSAGES ════════════════════════════════════════════════════ */
+
+.msg {
+  max-width: 780px; margin: 0 auto 20px; padding: 0 24px;
+  animation: msg-in .25s var(--ease);
+}
+@keyframes msg-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* Лейбл провайдера и времени — моно, uppercase, разрядка (из дизайна). */
+.msg-role {
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 7px;
+}
+.msg.user .msg-role { color: var(--ink-mono); }
+.msg-timer { color: var(--ink-mono); text-transform: none; }
+.msg-body { white-space: pre-wrap; word-wrap: break-word; line-height: 1.7; color: #D9CCC1; }
+
+/* Длинный ответ модели свёрнут: показываем начало под затуханием, полный
+   текст — по кнопке «Раскрыть». Чтобы глубокое исследование на страницу
+   текста не заваливало ленту. Высота совпадает с COLLAPSE_MAX в app.js. */
+.answer-body.collapsible {
+  max-height: 460px; overflow: hidden; position: relative;
+}
+.answer-body.collapsible::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 96px;
+  background: linear-gradient(to bottom, transparent, var(--bg));
+  pointer-events: none;
+}
+.answer-body.expanded { max-height: none; overflow: visible; }
+.msg-expand {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 8px 0 2px; padding: 5px 13px;
+  background: var(--elevated); border: 1px solid var(--edge);
+  border-radius: 999px; color: var(--accent);
+  font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: border-color .12s;
+}
+.msg-expand:hover { border-color: var(--accent); }
+.msg-expand::before {
+  content: "▾"; font-size: 10px; transition: transform .15s var(--ease);
+}
+.msg-expand.is-open::before { transform: rotate(180deg); }
+
+.msg.user .msg-body {
+  background: var(--float);
+  border: 1px solid var(--edge-warm);
+  border-radius: 16px 16px 4px 16px;
+  padding: 13px 18px;
+  color: var(--ink);
+}
+.msg.error .msg-body {
+  color: var(--dead);
+  border: 1px solid rgba(248,113,113,.15);
+  border-radius: var(--r);
+  padding: 12px 16px;
+  background: rgba(248,113,113,.04);
+}
+
+/* Прикреплённые файлы в сообщении пользователя: миниатюра у картинки,
+   плашка с именем у файла. Показываем то, что реально ушло провайдеру. */
+.msg-attachments {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+}
+.msg-attach-img {
+  max-width: 180px; max-height: 180px; border-radius: 10px;
+  border: 1px solid var(--edge-warm); object-fit: cover; cursor: zoom-in;
+  display: block;
+}
+.msg-attach-file {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-radius: 8px;
+  background: var(--elevated); border: 1px solid var(--edge-warm);
+  font-size: 12px; color: var(--ink-2);
+}
+
+.msg-body code {
+  background: var(--raised); padding: 2px 6px; border-radius: 4px;
+  font-family: "SF Mono", Consolas, monospace; font-size: 12.5px;
+  border: 1px solid var(--edge);
+}
+.msg-body pre {
+  background: var(--bg-rail); border: 1px solid var(--edge);
+  border-radius: var(--r-sm); padding: 14px 16px;
+  overflow-x: auto; margin: 8px 0;
+}
+.msg-body pre code { background: transparent; padding: 0; border: 0; }
+.msg-body h3,.msg-body h4,.msg-body h5,.msg-body h6 { margin: 16px 0 4px; font-size: 14.5px; font-weight: 600; }
+.msg-body h3 { font-size: 16px; }
+.msg-body ul,.msg-body ol { margin: 4px 0; padding-left: 22px; }
+.msg-body li { margin: 2px 0; }
+.msg-body blockquote {
+  margin: 8px 0; padding: 2px 0 2px 14px;
+  border-left: 2px solid var(--accent-dim); color: var(--ink-2);
+}
+.msg-body strong { font-weight: 700; color: var(--ink); }
+.msg-body a { color: var(--accent); }
+.msg-body:has(ul),.msg-body:has(ol),.msg-body:has(h3),
+.msg-body:has(h4),.msg-body:has(table) { white-space: normal; }
+
+/* ── таблицы ── */
+.table-wrap {
+  /* Широкую таблицу листаем внутри её рамки: страница от этого
+     горизонтально не разъезжается. */
+  overflow-x: auto;
+  margin: 10px 0;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+}
+.msg-body table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13.5px;
+  white-space: normal;
+}
+.msg-body th, .msg-body td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--edge);
+  vertical-align: top;
+}
+.msg-body th {
+  background: var(--raised);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+.msg-body td { color: var(--ink-2); }
+.msg-body tbody tr:last-child td { border-bottom: 0; }
+.msg-body tbody tr:hover td { background: rgba(255,255,255,.02); }
+/* Картинки в ленте одной высоты: рисовальщики отдают разные пропорции,
+   и без приведения выдача скачет. Кадрируем по центру, полный размер —
+   по клику. */
+.msg-body img, .msg-image {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: 300px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: var(--r-sm);
+  margin: 8px 0;
+  border: 1px solid var(--edge);
+  /* Мягкий фон на время загрузки: у Pollinations картинка генерится пару
+     секунд, и без фона это выглядело битым пустым боксом. */
+  background: var(--elevated);
+  cursor: zoom-in;
+  transition: border-color .15s var(--ease), transform .15s var(--ease);
+}
+.msg-body img:hover, .msg-image:hover {
+  border-color: var(--edge-warm);
+  transform: translateY(-1px);
+}
+/* Реально не загрузилась (404/битый URL) — компактная ссылка вместо
+   огромного пустого бокса с иконкой «сломано». */
+.msg-image-fail {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 8px 0; padding: 8px 12px; border-radius: var(--r-sm);
+  background: var(--elevated); border: 1px dashed var(--edge);
+  color: var(--ink-3); font-size: 12.5px; text-decoration: none;
+}
+.msg-image-fail:hover { color: var(--ink-2); border-color: var(--edge-warm); }
+
+/* Файл, собранный моделью. Не ссылка в тексте, а предмет: его забирают,
+   а не читают, — поэтому плашкой, а не подчёркиванием. */
+.msg-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin: 4px 6px 4px 0;
+  padding: 7px 12px;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: border-color .15s var(--ease), background .15s var(--ease);
+}
+.msg-file:hover {
+  border-color: var(--edge-warm);
+  background: var(--elevated);
+}
+
+/* ── Просмотр картинки ───────────────────────────────────────────── */
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px;
+  background: rgba(8, 6, 5, .88);
+  backdrop-filter: blur(6px);
+  animation: viewer-in .16s var(--ease);
+}
+.viewer[hidden] { display: none; }
+@keyframes viewer-in { from { opacity: 0 } to { opacity: 1 } }
+
+.viewer-img {
+  max-width: min(92vw, 1400px);
+  max-height: 82vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--r-sm);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+  cursor: default;
+}
+.viewer-bar { display: flex; gap: 10px; }
+.viewer-btn {
+  padding: 9px 20px;
+  border: 1px solid var(--edge-hover);
+  border-radius: var(--r-pill);
+  background: var(--raised);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.viewer-btn:hover { border-color: var(--accent); color: var(--ink); }
+#viewer-save { background: var(--accent); color: var(--accent-ink);
+               border-color: var(--accent); font-weight: 600; }
+#viewer-save:hover { filter: brightness(1.08); }
+
+
+/* ═══ THINKING ════════════════════════════════════════════════════ */
+
+.thinking {
+  margin-bottom: 12px; border: 1px solid var(--edge);
+  border-radius: var(--r-sm); overflow: hidden;
+}
+.thinking[open] { border-color: var(--accent-dim); box-shadow: 0 0 20px var(--accent-glow); }
+.thinking summary {
+  padding: 8px 12px; font-size: 11px; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--accent); cursor: pointer;
+  background: var(--raised); user-select: none;
+  list-style: none; display: flex; align-items: center; gap: 8px;
+}
+.thinking summary::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent-dim);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.thinking:not([open]) summary::before { animation: none; opacity: .5; }
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: .4; box-shadow: 0 0 14px var(--accent-dim); }
+}
+.thinking-body {
+  padding: 10px 14px; font-size: 12px; line-height: 1.6;
+  color: var(--ink-3); white-space: pre-wrap; word-wrap: break-word;
+  max-height: 240px; overflow-y: auto;
+  background: var(--bg); border-top: 1px solid var(--edge);
+  font-family: "SF Mono", Consolas, monospace;
+}
+
+.caret {
+  display: inline-block; width: 2px; height: 16px;
+  margin-left: 2px; background: var(--accent);
+  vertical-align: text-bottom; border-radius: 1px;
+  animation: blink 1s steps(2) infinite;
+  box-shadow: 0 0 6px var(--accent-dim);
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+
+/* ═══ COMPOSER — кнопки ПОД полем ═════════════════════════════════ */
+
+.composer-area {
+  max-width: 780px; width: 100%;
+  margin: 0 auto; padding: 0 24px 14px;
+  position: relative;
+}
+/* Растушёвка над формой: текст уходит под неё плавно, а не срезается. */
+.composer-area::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 100%;
+  height: 40px;
+  background: linear-gradient(to top, var(--bg), transparent);
+  pointer-events: none;
+}
+
+.composer-box {
+  position: relative;
+  border-radius: 20px;
+  background: var(--raised);
+  border: 1px solid var(--edge-warm);
+  /* Тонкий оранжевый ореол вокруг поля — из дизайна. */
+  box-shadow: 0 0 0 5px var(--accent-glow);
+  transition: border-color .2s, box-shadow .2s;
+}
+.composer-box:focus-within {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 0 5px var(--accent-wash);
+}
+
+.composer { display: flex; flex-direction: column; }
+
+.attachments {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 8px 12px 0;
+}
+.attachments[hidden] { display: none; }
+.attachment-chip {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 8px; background: var(--elevated);
+  border: 1px solid var(--edge); border-radius: 4px;
+  font-size: 11px; color: var(--ink-2);
+}
+.attachment-remove {
+  border: 0; background: transparent; color: var(--ink-3);
+  font-size: 13px; padding: 0 2px; cursor: pointer;
+}
+
+.composer-row {
+  display: flex; align-items: flex-end; gap: 6px;
+  padding: 8px 8px 8px 16px;
+}
+
+#input {
+  flex: 1;
+  /* Высота ровно как у кнопки отправки (38px = 8 + 22 + 8), иначе при
+     выравнивании по нижнему краю строка уезжает относительно кнопки. */
+  min-height: 38px;
+  max-height: 160px;
+  padding: 8px 0; background: transparent;
+  border: 0; color: var(--ink); font: inherit;
+  font-size: 14.5px; resize: none; outline: none;
+  line-height: 22px;
+}
+#input::placeholder { color: var(--ink-4); }
+
+#send {
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  background: var(--accent); border: 0;
+  border-radius: 10px; color: #1a1200;
+  flex: 0 0 auto; transition: all .12s;
+}
+#send:hover { background: var(--accent-hover); box-shadow: 0 2px 12px var(--accent-dim); }
+#send:disabled { opacity: .3; cursor: default; }
+#send:active:not(:disabled) { transform: scale(.92); }
+
+/* ── кнопки ПОД полем ── */
+/* Ряд под полем ввода. Переносить умеет намеренно: кнопок бывает пять, и
+   на узком окне подсказка про Enter налезала на них, ломаясь посередине
+   фразы. Теперь кнопки переносятся сами, а подсказка уходит на свою
+   строку целиком. */
+.composer-under {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 6px 2px 0;
+}
+
+.under-tools {
+  display: flex; gap: 6px; align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Чипы режимов — с рамкой, как в дизайне. */
+.under-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 11px;
+  background: transparent;
+  border: 1px solid var(--edge-hover);
+  border-radius: 9px;
+  color: var(--ink-2); font-size: 13px; font-weight: 500;
+  transition: all .12s; cursor: pointer; white-space: nowrap;
+}
+.under-btn:hover { color: var(--ink); border-color: var(--edge-warm); }
+.under-btn.active {
+  color: var(--accent);
+  border-color: #4A3018;
+  background: #22160D;
+}
+/* Умение есть в пуле, но его носитель не залогинен: кнопка видна (чтобы
+   человек знал о возможности), но приглушена, с замком и «нельзя нажать». */
+.under-btn.ability-off {
+  opacity: .4; cursor: not-allowed; border-style: dashed;
+}
+.under-btn.ability-off:hover { color: var(--ink-2); border-color: var(--edge-hover); }
+.under-btn.ability-off::after {
+  content: "🔒"; font-size: 9px; margin-left: 1px; filter: grayscale(1);
+}
+
+/* Скрепка — голая иконка без рамки. */
+.attach-btn {
+  border: 0; padding: 6px; color: var(--ink-4);
+}
+.attach-btn:hover { border: 0; background: transparent; color: var(--ink-2); }
+
+/* Подсказка не переносится по словам: либо помещается в строку целиком,
+   либо уезжает на следующую вместе с собой. */
+.under-hints {
+  font-size: 11.5px; color: var(--ink-4);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ── таймер в сообщении ── */
+.msg-timer {
+  font-size: 10px; color: var(--ink-mono);
+  font-family: var(--font-mono);
+  margin-left: 8px; font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ── плавное появление текста (typewriter) ── */
+.msg-body.typing {
+  animation: none;
+}
+.msg-body.typing .answer-body {
+  overflow: hidden;
+}
+@keyframes text-reveal {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: none; }
+}
+.reveal-chunk {
+  display: inline;
+  animation: text-reveal .15s ease-out both;
+}
+
+
+/* ═══ POOL — всплывающая карточка ════════════════════════════════ */
+
+.pool-backdrop {
+  position: fixed; inset: 0; z-index: 190;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fade-in .2s ease;
+}
+.pool-backdrop[hidden] { display: none; }
+@keyframes fade-in { from { opacity: 0; } }
+
+.pool {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(700px, calc(100vw - 40px));
+  max-height: min(720px, calc(100vh - 60px));
+  display: flex; flex-direction: column;
+  z-index: 200;
+  /* Тёплое стекло — в тон «лисьей норе», не холодный серо-синий. */
+  background: rgba(23,18,15,.92);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid var(--edge-warm);
+  border-radius: 20px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.6),
+              inset 0 1px 0 rgba(255,255,255,.04);
+  overflow: hidden;
+  animation: pool-pop .28s var(--ease);
+}
+.pool[hidden] { display: none; }
+
+@keyframes pool-pop {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(.95); }
+}
+
+.pool-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--edge);
+}
+.pool-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.pool-note {
+  margin-top: 3px; font-size: 12px; color: var(--ink-3); line-height: 1.45;
+}
+
+.pool-tabs {
+  display: flex; gap: 2px; padding: 10px 20px; flex-shrink: 0;
+  border-bottom: 1px solid var(--edge);
+}
+.pool-tab {
+  padding: 6px 14px; border: 0; border-radius: 7px;
+  background: transparent; color: var(--ink-3);
+  font-size: 12.5px; font-weight: 500; transition: all .12s;
+}
+.pool-tab:hover { background: rgba(255,255,255,.05); color: var(--ink-2); }
+.pool-tab.active {
+  background: var(--accent-wash); color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-dim);
+}
+
+.pool-list { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 20px 16px; }
+
+.pool-row {
+  display: grid; grid-template-columns: 10px 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 10px;
+  transition: background .12s;
+}
+.pool-row:hover { background: rgba(255,255,255,.04); }
+.pool-name { font-size: 13.5px; font-weight: 500; }
+.pool-sub {
+  font-size: 11.5px; color: var(--ink-3); margin-top: 1px;
+  font-family: "SF Mono", Consolas, monospace;
+}
+.pool-kind {
+  font-size: 10px; padding: 3px 8px; border-radius: 5px;
+  border: 1px solid var(--edge); color: var(--ink-3);
+  font-weight: 500; text-transform: uppercase; letter-spacing: .04em;
+}
+
+
+/* ═══ RESPONSIVE ══════════════════════════════════════════════════ */
+
+@media (max-width: 1000px) {
+  .rail {
+    position: fixed; left: 0; top: 0; height: 100%; z-index: 100;
+    box-shadow: 20px 0 60px rgba(0,0,0,.5);
+  }
+  .rail.hidden { transform: translateX(-100%); margin-left: 0; }
+  .pool {
+    position: fixed; right: 0; top: 0; height: 100%; z-index: 100;
+    box-shadow: -20px 0 60px rgba(0,0,0,.5);
+  }
+  .picker-menu { width: min(440px, 90vw); }
+  .suggestions { grid-template-columns: 1fr; }
+}
+
+
+/* ═══ ПОЛОСКИ У СООБЩЕНИЙ ═════════════════════════════════════════ */
+
+/* Ответ отбивается тонкой полосой слева: в длинной ленте так сразу
+   видно, где кончилась реплика человека и началась машинная. */
+.msg:not(.user):not(.error) {
+  position: relative;
+}
+/* Затухающая полоса-метка ответа модели: 3px, оранжевый → прозрачный. */
+.msg:not(.user):not(.error)::before {
+  content: "";
+  position: absolute;
+  left: 24px; top: 22px; bottom: 2px;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--accent), transparent);
+}
+.msg:not(.user):not(.error) .msg-role,
+.msg:not(.user):not(.error) .msg-body { padding-left: 16px; }
+
+.msg.user { display: flex; flex-direction: column; align-items: flex-end; }
+.msg.user .msg-role { padding-right: 2px; }
+.msg.user .msg-body {
+  max-width: 82%;
+}
+
+
+/* ═══ ЧИПЫ МОДЕЛЕЙ ════════════════════════════════════════════════ */
+
+.model-row {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 2px 10px 8px 34px;
+  animation: fade-up .2s ease;
+}
+.model-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--edge);
+  background: var(--raised);
+  color: var(--ink-3);
+  font-size: 11px;
+  font-family: "SF Mono", Consolas, monospace;
+  transition: all .12s;
+}
+/* Норма и признак зрения — справка, а не название: тише и не моноширинно,
+   иначе цифры спорят с именем модели за внимание. */
+.model-chip .model-note {
+  font-family: inherit;
+  font-size: 10px;
+  color: var(--ink-4);
+}
+.model-chip.on .model-note { color: var(--accent-dim); }
+.model-chip:hover {
+  border-color: var(--edge-hover); color: var(--ink-2);
+  background: var(--elevated);
+}
+.model-chip.on {
+  border-color: var(--accent-dim);
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.tag.paid {
+  color: #fbbf24;
+  border-color: rgba(251,191,36,.25);
+  background: rgba(251,191,36,.06);
+}
+
+.pool-kinds { display: flex; gap: 5px; align-items: center; }
+.pool-kind.paid {
+  color: #fbbf24;
+  border-color: rgba(251,191,36,.25);
+  background: rgba(251,191,36,.06);
+}
+
+/* ═══ ОЗВУЧКА ═════════════════════════════════════════════════════ */
+
+/* Ряд голосов/рисовальщиков. max-height-анимация в Chrome глючит (и с
+   transition, и с animation застревает на 0), поэтому появление —
+   через display + fade/slide, надёжно в обе стороны. */
+/* Панель голосов/картинок ВСПЛЫВАЕТ над полем ввода, а не встаёт в поток.
+   Раньше она была блоком в composer-area: её появление увеличивало высоту
+   области и толкало hero вверх — «всё дёргалось». Теперь position:absolute,
+   поэтому НИЧЕГО не сдвигается. Фон — основной фон страницы (var(--bg)),
+   без рамки и тени: панель сливается с фоном, а карточки под ней чисто
+   перекрываются, не просвечивая. Сверху мягкий фейд для плавного края. */
+.voice-bar {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 6;
+  /* Слегка полупрозрачный матовый фон: карточки под панелью просвечивают
+     размыто, а не перекрываются наглухо. */
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 6px 24px 10px;
+}
+.voice-bar.open,
+.voice-bar.closing { display: block; }
+.voice-bar.open { animation: bar-in .22s var(--ease); }
+.voice-bar.closing { animation: bar-out .18s var(--ease) forwards; }
+@keyframes bar-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes bar-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+.voice-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 4px 12px;
+}
+.voice-bar[hidden] { display: none; }
+.voice-label {
+  font-size: 12px;
+  color: var(--ink-3);
+  min-width: 64px;
+  flex: 0 0 auto;
+}
+.voice-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 13px;
+  border: 1px solid var(--edge-hover);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  transition: all .12s;
+}
+.voice-chip em {
+  font-style: normal;
+  font-size: 11px;
+  opacity: .6;
+}
+.voice-chip:hover {
+  border-color: var(--edge-warm);
+  color: var(--ink);
+}
+/* Активный голос — единственная оранжевая заливка здесь. */
+.voice-chip.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.voice-chip.on em { opacity: .8; }
+/* Рисовальщик без доступа: приглушён + замок, чтобы не выглядел рабочим. */
+.voice-chip.unavail {
+  opacity: .45;
+  border-style: dashed;
+}
+.voice-chip.unavail:hover { opacity: .7; }
+.chip-lock { font-size: 9px; margin-left: 2px; filter: grayscale(1); }
+
+/* ── свой аудиоплеер ── */
+.player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 440px;
+  margin: 6px 0 10px;
+  padding: 10px 14px 10px 10px;
+  background: linear-gradient(135deg,
+              rgba(240,160,48,.06), rgba(255,255,255,.02));
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.player.playing {
+  border-color: var(--accent-dim);
+  box-shadow: 0 0 24px rgba(240,160,48,.08);
+}
+.player audio { display: none; }
+
+.player-play {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  position: relative;
+  border: 0; border-radius: 50%;
+  background: var(--accent);
+  color: #1a1200;
+  transition: transform .12s, box-shadow .2s, background .2s;
+}
+.player-play:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 0 18px var(--accent-dim);
+}
+.player-play:active { transform: scale(.9); }
+/* Обе иконки в одной точке центра; видна одна — по состоянию плеера.
+   Через класс, а не hidden-атрибут: тот на SVG срабатывал не всегда. */
+.player-play svg {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+.player-play .ic-play { margin-left: 1px; }  /* оптический центр треугольника */
+.player .ic-pause { display: none; }
+.player.playing .ic-play { display: none; }
+.player.playing .ic-pause { display: block; }
+
+/* Звуковая дорожка: серые полоски + оранжевый слой поверх по прогрессу */
+.player-wave {
+  position: relative;
+  flex: 1;
+  height: 34px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.wave-row {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.wave-row span {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.wave-bg { color: var(--sleep); }
+/* Оранжевый слой лежит поверх серого во всю ширину — полоски точно
+   совпадают. Виден только слева до прогресса: обрезаем clip-path, а не
+   шириной, иначе flex-полоски сжались бы вместо обрезки. */
+.wave-fg {
+  color: var(--accent);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path .1s linear;
+}
+
+.player-time {
+  flex: 0 0 auto;
+  min-width: 34px;
+  text-align: right;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--ink-3);
+}
+
+/* ═══ СВЕТЛАЯ ТЕМА ════════════════════════════════════════════════ */
+/* Кремовый фон, белые панели, акцент темнеет ради контраста (из дизайна). */
+.light {
+  --bg:         #FAF4EC;
+  --bg-rail:    #FFFFFF;
+  --raised:     #FFFFFF;
+  --elevated:   #F6EEE2;
+  --float:      #EFE6D8;
+
+  --edge:       #ECDDCB;
+  --edge-hover: #E2D1BC;
+  --edge-warm:  #D6C2A6;
+
+  --ink:        #2A1F16;
+  --ink-2:      #6E5D52;
+  --ink-3:      #93816F;
+  --ink-4:      #B0A08E;
+  --ink-mono:   #A89684;
+
+  --accent:     #D95E12;
+  --accent-hover:#E8621A;
+  --accent-dark:#B94A0A;
+  --accent-dim: rgba(217,94,18,.28);
+  --accent-wash:rgba(217,94,18,.07);
+  --accent-glow:rgba(217,94,18,.05);
+  --accent-ink: #FFFFFF;
+
+  --live:       #1F9D6B;
+  --live-dim:   rgba(31,157,107,.4);
+  --sleep:      #DBCDBB;
+}
+.light body { background: var(--bg); }
+.light .msg-body { color: #4A3B2E; }
+.light .brand-badge { background: #FDEBD8; border-color: #F0C89E; }
+.light .under-btn.active,
+.light .thread-item.active { background: #FBEEDF; }
+.light .composer-box,
+.light .pool { background: #FFFFFF; }
+.light .pool { background: rgba(255,255,255,.94); }
+
+/* Переключатель темы: показываем иконку целевого режима. */
+.theme-toggle .ic-sun { display: none; }
+.light .theme-toggle .ic-moon { display: none; }
+.light .theme-toggle .ic-sun { display: block; }
+.theme-toggle svg { position: absolute; }
+.theme-toggle { position: relative; }
+
+/* Переключатель языка: текстовая иконка RU/EN в той же icon-кнопке. */
+#lang-toggle { font-family: var(--font-mono); font-weight: 700; font-size: 12px; letter-spacing: .04em; }
+
+/* ═══ ДЕЙСТВИЯ ПОД ОТВЕТОМ ════════════════════════════════════════ */
+.msg-actions {
+  display: flex;
+  gap: 6px;
+  padding: 12px 0 2px 16px;
+}
+.msg-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--ink-4);
+  transition: all .12s;
+  cursor: pointer;
+}
+.msg-act svg { opacity: .85; }
+.msg-act:hover {
+  color: var(--accent);
+  border-color: var(--edge-hover);
+  background: var(--raised);
+}
+.msg-act.done { color: var(--live); border-color: transparent; background: transparent; }
+
+/* Свёрнутый прошлый вариант ответа. */
+.variant-collapsed {
+  max-width: 780px; margin: 0 auto 12px; padding: 0 24px 0 40px;
+}
+.variant-toggle {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 12px;
+  background: var(--raised);
+  border: 1px dashed var(--edge-warm);
+  border-radius: 10px;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  font-family: var(--font-mono);
+  transition: all .12s;
+}
+.variant-toggle:hover { color: var(--ink); border-color: var(--accent-dim); }
+.variant-toggle svg { transition: transform .12s; }
+.variant-toggle:hover svg { transform: translateX(2px); }
+
+/* ═══ АНИМАЦИИ ЗАГРУЗКИ ═══════════════════════════════════════════ */
+/* Статичные элементы сайдбара и бара вплывают волной один раз при
+   открытии страницы (они не перерисовываются, поэтому не дёргаются). */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: none; }
+}
+.rail-brand  { animation: slide-in .5s var(--ease) backwards; animation-delay: .04s; }
+.new-chat    { animation: slide-in .5s var(--ease) backwards; animation-delay: .10s; }
+.rail-search { animation: slide-in .5s var(--ease) backwards; animation-delay: .16s; }
+.rail-foot   { animation: slide-in .5s var(--ease) backwards; animation-delay: .22s; }
+.bar         { animation: fade-up .5s var(--ease) backwards; animation-delay: .08s; }
+
+/* Точки пула проявляются волной — только при первой отрисовке сетки. */
+.pool-mini-grid .pool-dot {
+  animation: dot-pop .4s var(--ease) backwards;
+}
+@keyframes dot-pop {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ═══ БЛОК КОДА: подсветка + шапка + копирование ══════════════════ */
+.code-block {
+  margin: 10px 0;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: #0B0908;
+}
+.light .code-block { background: #FBF6EE; border-color: var(--edge); }
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: var(--raised);
+  border-bottom: 1px solid var(--edge);
+}
+.code-lang {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-mono);
+}
+.code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  color: var(--ink-4);
+  cursor: pointer;
+  transition: all .12s;
+}
+.code-copy:hover { color: var(--accent); border-color: var(--edge-hover); background: var(--elevated); }
+.code-copy.done { color: var(--live); }
+
+.code-block pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+.code-block pre code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+/* Токены подсветки — тёплая палитра под «лисью нору». */
+.tok-com { color: #6E5D52; font-style: italic; }
+.tok-str { color: #7FC29B; }
+.tok-num { color: #E8A868; }
+.tok-kw  { color: #FF9E5E; font-weight: 600; }
+.tok-fn  { color: #E5C07B; }
+.light .tok-com { color: #A08D80; }
+.light .tok-str { color: #2E8B57; }
+.light .tok-num { color: #C2610C; }
+.light .tok-kw  { color: #C0392B; font-weight: 600; }
+.light .tok-fn  { color: #9A6E00; }
+
+/* Иконка режима (картинка/озвучка) в реплике пользователя. */
+.msg-mode-ic {
+  display: inline-flex;
+  vertical-align: -3px;
+  margin-right: 7px;
+  color: var(--accent);
+}
+
+/* Плашка «лимит исчерпан» — не ошибка, а ожидаемое состояние. */
+.msg-limit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border: 1px solid rgba(255,184,107,.25);
+  border-radius: var(--r);
+  background: rgba(255,138,61,.06);
+  color: var(--warn);
+  font-size: 14px;
+}
+.msg-limit svg { flex: 0 0 auto; opacity: .9; }
+
+/* Пояснение на чипе движка: зачем выбирать именно его. */
+.voice-note {
+  color: var(--ink-4);
+  font-size: 10px;
+  font-style: normal;
+  margin-left: 6px;
+}
+.voice-chip.on .voice-note { color: var(--accent-ink); opacity: .75; }
+
+/* Два ряда внутри полосы: движок и его голоса. Верхний ряд не должен
+   отбивать нижний лишним воздухом — они про одно. */
+#voice-bar .voice-inner { padding: 6px 4px; }
+#voice-bar .voice-inner:first-child { padding-top: 10px; }
+#voice-bar .voice-inner:last-child { padding-bottom: 12px; }
+
+/* Чип движка крупнее голосового: у него два уровня — имя и пояснение. */
+#tts-engines .voice-chip { padding: 7px 14px; }
+
+/* Скрепка внутри поля ввода: прикрепить файл — часть письма, а не
+   отдельное действие где-то под формой. */
+.attach-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  align-self: flex-end;
+  margin-bottom: 2px;
+  border-radius: var(--r-pill);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color .15s var(--ease), background .15s var(--ease);
+}
+.attach-btn:hover { color: var(--accent); background: var(--elevated); }
+.attach-btn.has-files { color: var(--accent); }
+
+/* ── Доступы ─────────────────────────────────────────────────────── */
+
+/* Живёт в шапке, рядом с переключателем темы: там ей и место — это
+   настройка, а не показатель, и в карточке пула она путалась со
+   счётчиком запросов. */
+.keys-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  margin: 0;
+  background: var(--raised);
+  border: 1px solid var(--edge-hover);
+  border-radius: 10px;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all .12s;
+}
+.keys-toggle:hover { background: var(--elevated); color: var(--ink); }
+.keys-toggle .keys-count {
+  font-size: 11.5px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+/* Всё подключено — счётчик не кричит оранжевым, а гаснет. */
+.keys-count-ok { color: var(--ink-3) !important; }
+
+/* На узкой шапке подпись прячем, значок и счётчик остаются. */
+@media (max-width: 900px) {
+  .keys-toggle span:not(.keys-count) { display: none; }
+}
+
+.keys-tab {
+  background: none; border: 0; color: var(--ink-3); cursor: pointer;
+  font: inherit; font-size: 13px; padding: 8px 10px; border-radius: 8px;
+}
+.keys-tab.active { color: var(--ink); background: var(--elevated); }
+
+.key-card {
+  border: 1px solid var(--edge); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 10px; background: var(--raised);
+}
+.key-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.key-title { font-weight: 600; color: var(--ink); }
+.key-head-spacer { flex: 1 1 auto; }
+.key-site {
+  color: var(--accent); font-size: 12px; text-decoration: none;
+}
+.key-site:hover { text-decoration: underline; }
+
+/* Маркер привязки к IP — эмодзи с подсказкой в title. */
+.key-ip { font-size: 12px; cursor: help; line-height: 1; }
+
+/* Кнопка «Войти в браузере» и запасная ссылка «вручную». */
+.key-login {
+  border: 1px solid var(--accent); background: transparent;
+  color: var(--accent); font-size: 12px; font-weight: 600;
+  padding: 4px 12px; border-radius: 999px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.key-login:hover { background: var(--accent); color: #fff; }
+.key-login + .key-site { margin-left: 2px; opacity: .7; font-size: 11px; }
+
+/* Шаг «Забрать куки» после входа. */
+.key-login-step {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 12px; color: var(--ink-2);
+}
+/* Предупреждение «не закрывай окно» — на всю ширину и цветом, чтобы не
+   проскочило мимо: закрытое окно = снимать куки неоткуда. */
+.key-login-warn {
+  flex-basis: 100%; font-weight: 600; color: var(--warn, #B57A1E);
+  background: color-mix(in srgb, var(--warn, #B57A1E) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn, #B57A1E) 30%, transparent);
+  border-radius: 8px; padding: 6px 10px;
+}
+.key-grab {
+  border: 0; background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: 600; padding: 5px 14px;
+  border-radius: 999px; cursor: pointer;
+}
+.key-grab:hover { filter: brightness(1.06); }
+.grab-ok { color: var(--good, #2E8B5B); font-weight: 600; }
+.grab-warn { color: var(--warn, #B57A1E); }
+
+/* Крутящийся индикатор на время долгих операций (снятие кук, проверка
+   живости, вход) — вместо статичной черточки «…». */
+.spinner {
+  display: inline-block; width: 12px; height: 12px; vertical-align: -2px;
+  margin-right: 6px; border: 2px solid var(--edge-warm);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spinner-rot .7s linear infinite;
+}
+@keyframes spinner-rot { to { transform: rotate(360deg); } }
+.is-working { color: var(--ink-2); }
+
+/* Свёрнутая справка «как завести доступ» вверху «Доступов». */
+.keys-help { margin: 10px 20px 12px; border: 1px solid var(--edge-warm);
+  border-radius: 12px; background: var(--raised); flex-shrink: 0; }
+.keys-help summary {
+  cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 600;
+  color: var(--accent); list-style: none; user-select: none;
+}
+.keys-help summary::-webkit-details-marker { display: none; }
+.keys-help summary::before { content: "?"; display: inline-flex;
+  align-items: center; justify-content: center; width: 16px; height: 16px;
+  margin-right: 8px; border-radius: 50%; background: var(--accent);
+  color: #fff; font-size: 11px; }
+.keys-help[open] summary { border-bottom: 1px solid var(--edge-warm); }
+.keys-help-body { padding: 12px 14px; font-size: 12.5px; line-height: 1.55;
+  color: var(--ink-2); }
+.keys-help-body p { margin: 0 0 10px; }
+.keys-help-body p:last-child { margin-bottom: 0; }
+.keys-help-body b { color: var(--ink); }
+.ip-lg { margin: 0 2px; }
+
+/* Секция «Прокси» в «Настройках». */
+.settings-proxy { margin: 0; padding: 16px 20px 20px; }
+.settings-h { font-size: 14px; font-weight: 700; color: var(--ink);
+  margin: 0 0 6px; }
+
+/* Верхние вкладки настроек: «Доступы | Прокси». Прокси занимал полокна и
+   ломал прокрутку списка — вынесен в свою панель, показывается по одной. */
+.settings-nav {
+  display: flex; gap: 4px; padding: 10px 20px;
+  border-bottom: 1px solid var(--edge); flex-shrink: 0;
+}
+.settings-navtab {
+  padding: 7px 16px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--ink-3);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all .12s;
+}
+.settings-navtab:hover { background: rgba(255,255,255,.05); color: var(--ink-2); }
+.settings-navtab.active {
+  background: var(--accent-wash); color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-dim);
+}
+
+/* Панель доступов растягивается на остаток высоты, список внутри неё
+   прокручивается (min-height:0 обязателен — иначе flex-элемент не даёт
+   ужаться, и при раскрытии подсказки прокрутка пропадала). */
+.settings-pane[data-pane="access"] {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+}
+.settings-pane[data-pane="proxy"] { overflow-y: auto; }
+.settings-pane[hidden] { display: none; }
+.settings-sub { font-size: 12px; color: var(--ink-3); margin: 0 0 10px;
+  line-height: 1.5; }
+.proxy-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.proxy-input {
+  flex: 1 1 240px; min-width: 0; padding: 9px 12px; font-size: 13px;
+  font-family: var(--font-mono); border: 1px solid var(--edge-warm);
+  border-radius: 10px; background: var(--bg); color: var(--ink);
+}
+.proxy-input:focus { outline: none; border-color: var(--accent); }
+.proxy-save, .proxy-test {
+  border: 0; border-radius: 10px; padding: 9px 16px; font-size: 13px;
+  font-weight: 600; cursor: pointer;
+}
+.proxy-save { background: var(--accent); color: #fff; }
+.proxy-save:hover { filter: brightness(1.06); }
+.proxy-test { background: var(--raised); color: var(--ink-2);
+  border: 1px solid var(--edge-warm); }
+.proxy-test:hover { color: var(--accent); border-color: var(--accent); }
+.proxy-result { font-size: 12.5px; margin-top: 8px; min-height: 16px; }
+.proxy-ok { color: var(--good, #2E8B5B); font-weight: 600; }
+.proxy-bad { color: var(--crit, #C0472F); }
+.proxy-formats { margin-top: 10px; }
+.proxy-formats code { font-size: 11px; }
+
+.key-what { color: var(--ink); font-size: 13px; margin-top: 8px; }
+.key-note { color: var(--ink-3); font-size: 12px; margin-top: 6px; line-height: 1.45; }
+.key-missing { color: var(--warn); font-size: 12px; margin-top: 6px; }
+.key-empty { color: var(--ink-3); padding: 20px; text-align: center; }
+
+/* Разделители групп в «Доступах»: веб-сессии и API-ключи — разное. */
+.keys-group-h {
+  display: flex; align-items: center; gap: 7px;
+  margin: 16px 4px 8px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3);
+}
+.keys-group-h:first-child { margin-top: 4px; }
+.keys-group-n {
+  font-size: 10px; font-weight: 600; color: var(--ink-3);
+  background: var(--elevated); border-radius: 6px; padding: 1px 6px;
+}
+
+.key-account {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 8px; padding: 6px 8px; border-radius: 8px;
+  background: var(--elevated); font-size: 12px;
+}
+.key-acc-name { color: var(--ink); font-weight: 500; }
+.key-acc-proxied { cursor: help; }
+.key-acc-tail { color: var(--ink-3); font-family: var(--font-mono); }
+.key-off { color: var(--warn); }
+.key-acc-actions { margin-left: auto; display: flex; gap: 6px; }
+
+/* Инлайн-редактор прокси для одной учётки: раскрывается на всю ширину
+   строки под кнопками, чтобы не толкать их. */
+.key-acc-proxy { flex-basis: 100%; display: flex; gap: 6px; margin-top: 2px; }
+.key-acc-proxy[hidden] { display: none; }
+.key-acc-proxy-input {
+  flex: 1; min-width: 0; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--edge); border-radius: 6px; padding: 5px 8px;
+  font: inherit; font-size: 11px; font-family: var(--font-mono);
+}
+.key-acc-proxy-input:focus { outline: none; border-color: var(--accent); }
+
+/* Прокси на всего провайдера — компактная строка в карточке: свёрнутая
+   кнопка со статусом, раскрывается в поле + Проверить + Сохранить. */
+.key-proxy { margin-top: 10px; }
+.key-proxy-toggle { max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.key-proxy-edit { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.key-proxy-edit[hidden] { display: none; }
+.key-proxy-input {
+  flex: 1 1 240px; min-width: 0; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--edge); border-radius: 6px; padding: 6px 9px;
+  font: inherit; font-size: 12px; font-family: var(--font-mono);
+}
+.key-proxy-input:focus { outline: none; border-color: var(--accent); }
+.key-proxy-result { flex-basis: 100%; font-size: 11.5px; min-height: 14px; }
+
+.key-mini {
+  background: none; border: 1px solid var(--edge); color: var(--ink-3);
+  border-radius: 6px; padding: 3px 8px; font: inherit; font-size: 11px;
+  cursor: pointer;
+}
+.key-mini:hover { color: var(--ink); border-color: var(--ink-3); }
+.key-mini.danger:hover { color: var(--dead); border-color: var(--dead); }
+
+.key-form { display: flex; gap: 8px; margin-top: 10px; }
+.key-input {
+  flex: 1; min-width: 0; background: var(--elevated); color: var(--ink);
+  border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px;
+  font: inherit; font-size: 13px;
+}
+.key-input:focus { outline: none; border-color: var(--accent); }
+.key-add {
+  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px;
+  padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.key-add:hover { filter: brightness(1.08); }
+
+.key-result { color: var(--ink-3); font-size: 12px; margin-top: 8px; min-height: 1em; }
+
+/* ── Надиктовка ──────────────────────────────────────────────────── */
+/* Кнопка живёт в поле ввода, рядом с отправкой. Речь распознаётся на
+   нашей же стороне (Groq Whisper) и вставляется текстом — то есть это не
+   «голосовой режим», а способ надиктовать вопрос. */
+.mic-btn {
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
+  width: 34px; height: 34px;
+  align-self: flex-end;
+  margin-bottom: 2px;
+  border: 0; padding: 6px;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-4);
+  cursor: pointer;
+  transition: color .15s var(--ease), background .15s var(--ease);
+}
+.mic-btn:hover { color: var(--accent); background: var(--elevated); }
+.mic-btn .ic-stop { display: none; }
+/* Идёт запись: значок меняется на «стоп» и мягко пульсирует, чтобы это
+   нельзя было не заметить — микрофон включён. */
+.mic-btn.recording { color: #E5484D; }
+.mic-btn.recording .ic-mic { display: none; }
+.mic-btn.recording .ic-stop { display: block; animation: mic-pulse 1.1s infinite; }
+.mic-btn:disabled { opacity: .5; cursor: default; }
+@keyframes mic-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
