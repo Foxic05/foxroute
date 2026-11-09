@@ -77,7 +77,8 @@ WANTED = {
     },
     "poe": {
         "origin": "https://poe.com",
-        "cookies": ["p-b", "p-lat"],
+        "cookie_header": True,
+        "note": "адаптер ждёт весь заголовок p-b=…; p-lat=…, а не склейку",
     },
     "alice": {
         "origin": "https://alice.yandex.ru",
