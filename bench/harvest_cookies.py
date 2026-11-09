@@ -178,12 +178,16 @@ def unwrap(raw: str) -> str:
 
 def glue(jar: dict[str, str], names: list[str]) -> str:
     """Склеить куки в порядке, которого ждёт адаптер."""
+    # Разрезанная кука (NextAuth у ChatGPT): значение не влезло в одну куку и
+    # лежит половинками под .0 и .1 — ЦЕЛЬНОЙ на сайте нет вовсе. Проверяем
+    # это ДО выхода по пустому parts[0], иначе до ветки склейки не доходит и
+    # рабочая сессия выглядит как отсутствующая кука (сервер соберёт обратно
+    # из конкатенации сам).
+    if len(names) == 1 and jar.get(names[0] + ".0"):
+        return jar[names[0] + ".0"] + jar.get(names[0] + ".1", "")
     parts = [jar.get(name, "") for name in names]
     if not parts[0]:
         return ""
-    # Разрезанная кука ChatGPT: половинки лежат под .0 и .1.
-    if len(names) == 1 and jar.get(names[0] + ".0"):
-        return jar[names[0] + ".0"] + jar.get(names[0] + ".1", "")
     return "|".join(p for p in parts if p) if len(names) > 1 else parts[0]
 
 
