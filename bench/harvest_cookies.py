@@ -69,7 +69,9 @@ WANTED = {
     },
     "mistral": {
         "origin": "https://chat.mistral.ai",
-        "cookies": ["ory_session_mistral"],
+        "cookie_header": True,
+        "note": "адаптер ставит все куки из «a=b; c=d»; имя сессии ory_session_"
+                "<случайное>, цельным заголовком берём и его, и cf_clearance",
     },
     "manus": {
         "origin": "https://manus.im",
