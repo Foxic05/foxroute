@@ -156,8 +156,11 @@ class DeepSeekProvider(Provider):
     def _open_session(self, session) -> str:
         payload = self._post(session, "/chat_session/create",
                              {"character_id": None})
-        chat_id = (((payload.get("data") or {}).get("biz_data") or {})
-                   .get("id"))
+        biz = (payload.get("data") or {}).get("biz_data") or {}
+        # Сервис переложил id беседы в под-объект chat_session (раньше лежал
+        # прямо в biz_data). Поддерживаем обе формы: откат к старой обошёлся
+        # бы молчащим провайдером.
+        chat_id = (biz.get("chat_session") or {}).get("id") or biz.get("id")
         if not chat_id:
             raise ProviderError("сервис не выдал беседу", self.name)
         return str(chat_id)
