@@ -250,6 +250,10 @@ def main() -> None:
         if not value and how.get("storage"):
             print(f"{'':<12} вкладка {how['origin']} должна быть ОТКРЫТА — "
                   "localStorage читается только в ней")
+        elif not value and (how.get("cookies") or how.get("cookie_header")):
+            have = sorted(cookies_for_host(cookies, host_of(how["origin"])))
+            print(f"{'':<12} на {host_of(how['origin'])} куки есть: "
+                  f"{', '.join(have) if have else 'НЕТ — тут не залогинен?'}")
 
     if not args.save:
         print(f"\nнайдено: {len(found)}. Положить в хранилище: --save")
@@ -259,8 +263,18 @@ def main() -> None:
 
     store = Accounts()
     for name, value in found.items():
-        store.add(name, value)
-        print(f"сохранено: {name}")
+        # Замена НА МЕСТЕ. Раньше --save добавлял НОВУЮ учётку каждый прогон
+        # (add без имени → main, 2, 3…), а open_provider берёт pool[0] — самую
+        # старую. Свежая кука так никогда не доставалась: оседала в «2»/«3» за
+        # мёртвым «main». Теперь для добытого провайдера сносим прежние учётки
+        # и кладём одну свежую. Трогаем ТОЛЬКО тех, для кого значение реально
+        # нашлось, — кого не залогинили, у того ничего не отбираем.
+        had = store.all(name)
+        for old in had:
+            store.remove(name, old.account)
+        store.add(name, value, note="вход через браузер")
+        extra = f"  (было {len(had)}, схлопнул в 1)" if len(had) > 1 else ""
+        print(f"сохранено: {name}{extra}")
 
 
 if __name__ == "__main__":
