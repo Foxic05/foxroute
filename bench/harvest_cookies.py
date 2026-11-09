@@ -87,6 +87,11 @@ WANTED = {
         "origin": "https://venice.ai",
         "cookies": ["__client"],
     },
+    "claude_web": {
+        "origin": "https://claude.ai",
+        "cookie_header": True,
+        "note": "вся строка кук: sessionKey + cf_clearance + __cf_bm",
+    },
 }
 
 
@@ -182,6 +187,34 @@ def glue(jar: dict[str, str], names: list[str]) -> str:
     return "|".join(p for p in parts if p) if len(names) > 1 else parts[0]
 
 
+def host_of(origin: str) -> str:
+    from urllib.parse import urlparse  # noqa: PLC0415
+
+    return urlparse(origin).hostname or ""
+
+
+def cookies_for_host(cookies: list[dict], host: str) -> dict[str, str]:
+    """Куки, относящиеся к ХОСТУ провайдера — отбор по домену, не по имени.
+
+    Без домена две разные сессии с одинаковым именем куки
+    (``__Secure-next-auth.session-token`` у ChatGPT и Perplexity) слипались:
+    обоим доставалось значение той, что встретилась первой.
+    """
+    jar: dict[str, str] = {}
+    for cookie in cookies:
+        dom = (cookie.get("domain") or "").lstrip(".")
+        if dom and (host == dom or host.endswith("." + dom)):
+            jar.setdefault(cookie["name"], cookie["value"])
+    return jar
+
+
+def cookie_header(cookies: list[dict], host: str) -> str:
+    """Вся строка кук хоста в виде ``a=b; c=d`` — для тех, кому адаптер ждёт
+    весь заголовок (Claude Web: sessionKey, cf_clearance, __cf_bm)."""
+    jar = cookies_for_host(cookies, host)
+    return "; ".join(f"{name}={value}" for name, value in jar.items())
+
+
 def tail(value: str) -> str:
     return f"{len(value)} симв, хвост …{value[-6:]}" if value else "—"
 
@@ -195,21 +228,23 @@ def main() -> None:
     args = parser.parse_args()
 
     only = {n.strip() for n in args.only.split(",") if n.strip()}
-    jar: dict[str, str] = {}
-    for cookie in all_cookies():
-        jar.setdefault(cookie["name"], cookie["value"])
+    cookies = all_cookies()
 
     found: dict[str, str] = {}
     for name, how in sorted(WANTED.items()):
         if only and name not in only:
             continue
-        if how.get("cookies"):
-            value = glue(jar, how["cookies"])
+        if how.get("cookie_header"):
+            value = cookie_header(cookies, host_of(how["origin"]))
+        elif how.get("cookies"):
+            value = glue(cookies_for_host(cookies, host_of(how["origin"])),
+                         how["cookies"])
         else:
             value = unwrap(storage_of(how["origin"], how["storage"]))
         if value:
             found[name] = value
-        where = ("куки " + ", ".join(how["cookies"]) if how.get("cookies")
+        where = ("вся строка кук" if how.get("cookie_header")
+                 else "куки " + ", ".join(how["cookies"]) if how.get("cookies")
                  else "localStorage " + how["storage"])
         print(f"{name:<12} {tail(value):<28} {where}")
         if not value and how.get("storage"):
