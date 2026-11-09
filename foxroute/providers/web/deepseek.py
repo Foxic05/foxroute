@@ -6,18 +6,22 @@
 Proof-of-Work — она берётся у сервиса и считается их же модулем
 WebAssembly (см. ``_deepseek_pow``).
 
-**Поток устроен патчами, а не готовыми кусками.** Сервис перешёл на
-протокол, где путь задаётся один раз, а дальше едут «голые» значения по
-последнему пути::
+**Поток устроен патчами, а не готовыми кусками.** Путь задаётся один раз, а
+дальше едут «голые» значения по последнему пути. Текст лежит во ФРАГМЕНТАХ,
+и ``-1`` всегда указывает на последний::
 
-    {"p": "response/content", "o": "APPEND", "v": "Б"}   путь и добавка
-    {"v": "ит"}                                          продолжение по пути
+    {"v": {"response": {"fragments": [{"type": "THINK", "content": "Н"}]}}}
+    {"p": "response/fragments/-1/content", "o": "APPEND", "v": "адо"}  добавка
+    {"v": " подумать"}                                   продолжение по пути
+    {"p": "response/fragments", "v": [{…THINK…}, {"type": "RESPONSE", …}]}
+    {"p": "response/fragments/-1/content", "o": "APPEND", "v": "Ответ"}
     {"p": "response/status", "o": "SET", "v": "FINISHED"}
-    {"v": [{…}, {…}]}                                    пачка операций
 
-Рядом по пути ``response/thinking_content`` идут рассуждения модели — в
-ответ они не годятся и отфильтровываются. Прежний формат (``choices[].delta``)
-поддерживаем тоже: сервис уже переключался, может и откатить.
+У фрагмента есть ``type``: ``THINK`` — рассуждения модели, в ответ не идут
+и отфильтровываются, ``RESPONSE`` — сам ответ. Новый фрагмент приходит
+полной заменой массива ``response/fragments``. Прежний плоский формат
+(``response/content`` и ``choices[].delta``) поддерживаем тоже: сервис уже
+переключался между ними, может и откатить.
 
 Держит 200 000 символов входа, медиана хода 2.8 секунды.
 """
@@ -191,12 +195,41 @@ class DeepSeekProvider(Provider):
 
     # ── разбор потока ─────────────────────────────────────────────────
 
-    @staticmethod
-    def _apply(operation: Any, state: dict, out: list) -> None:
+    @classmethod
+    def _kind_for(cls, state: dict) -> str:
+        """Ответ или рассуждения — по типу текущего последнего фрагмента."""
+        return "thinking" if state.get("frag_type") == "THINK" else "text"
+
+    @classmethod
+    def _note_fragments(cls, frags: Any, state: dict, out: list) -> None:
+        """Обновить текущий фрагмент по массиву ``fragments``.
+
+        Массив приходит в снимке ответа и при добавлении нового фрагмента
+        (полной заменой по пути ``response/fragments``). Излучаем контент
+        ТОЛЬКО последнего фрагмента: прежние уже утекли добавками, и повтор
+        задвоил бы их. Его ``type`` запоминаем — по нему пойдут следующие
+        добавки по пути ``…/fragments/-1/content``.
+        """
+        if not isinstance(frags, list) or not isinstance(frags[-1], dict):
+            return
+        last = frags[-1]
+        state["frag_type"] = last.get("type") or "RESPONSE"
+        if last.get("content"):
+            out.append((cls._kind_for(state), last["content"]))
+
+    @classmethod
+    def _apply(cls, operation: Any, state: dict, out: list) -> None:
         """Применить одну операцию патча, сложив результат в ``out``.
 
         Элементы ``out`` — пары (тип, текст). Тип ``text`` идёт в ответ,
         ``thinking`` отбрасывается вызывающим, ``stop`` завершает поток.
+
+        Сервис перешёл на ФРАГМЕНТЫ: текст лежит не в ``response/content``, а
+        в ``response/fragments/<i>/content``, причём ``-1`` всегда указывает
+        на последний фрагмент. У фрагмента есть ``type`` (``THINK`` —
+        рассуждения, ``RESPONSE`` — ответ), поэтому помним тип текущего.
+        Прежний плоский формат разбираем тоже: откат к нему обошёлся бы
+        молчащим провайдером.
         """
         if not isinstance(operation, dict):
             return
@@ -206,9 +239,16 @@ class DeepSeekProvider(Provider):
         path = operation.get("p", state.get("path"))
         value = operation.get("v")
 
-        if isinstance(value, list):  # пачка вложенных операций
+        # Полная замена массива фрагментов — добавлен новый (обычно RESPONSE
+        # после THINK). Это ветка ВПЕРЕДИ разбора списков: тут ``v`` — список
+        # фрагментов, а не пачка операций.
+        if path == "response/fragments" and isinstance(value, list):
+            cls._note_fragments(value, state, out)
+            return
+
+        if isinstance(value, list):  # пачка вложенных операций (BATCH)
             for nested in value:
-                DeepSeekProvider._apply(nested, state, out)
+                cls._apply(nested, state, out)
             return
 
         if isinstance(value, dict):  # начальный снимок ответа
@@ -218,7 +258,9 @@ class DeepSeekProvider(Provider):
             # id ответа — им продолжаем беседу (parent следующего хода).
             if response.get("message_id") is not None:
                 state["response_id"] = response["message_id"]
-            if response.get("content"):
+            if isinstance(response.get("fragments"), list):
+                cls._note_fragments(response["fragments"], state, out)
+            elif response.get("content"):  # старый плоский формат
                 out.append(("text", response["content"]))
             if response.get("status") in ("FINISHED", "STOP"):
                 out.append(("stop", ""))
@@ -227,7 +269,11 @@ class DeepSeekProvider(Provider):
         if not isinstance(value, str):
             return
 
-        if path == "response/content":
+        # Добавка текста. Путь — фрагмент (новый формат) или прямой (старый).
+        if path and path.startswith("response/fragments/") \
+                and path.endswith("/content"):
+            out.append((cls._kind_for(state), value))
+        elif path == "response/content":
             out.append(("text", value))
         elif path == "response/thinking_content":
             out.append(("thinking", value))
