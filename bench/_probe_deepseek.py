@@ -1,10 +1,11 @@
-"""Временная диагностика DeepSeek: сырые кадры /chat/completion.
+"""Временная диагностика DeepSeek: структура фрагментов при thinking.
 
-Печатает первые кадры потока как есть (промпт нейтральный). Запуск:
-python3 bench/_probe_deepseek.py
+Печатает структурные кадры (с «p» или снимок) целиком, текстовые {"v":"…"}
+сворачивает. Промпт нейтральный. Запуск: python3 bench/_probe_deepseek.py
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 
@@ -23,34 +24,44 @@ def main() -> None:
 
     with _http.session() as session:
         chat_id = prov._open_session(session)
-        print("беседа создана, id есть:", bool(chat_id))
         pow_response = prov.solver.solve(prov._challenge(session))
-        print("POW решён, длина:", len(pow_response or ""))
-
         resp = _http.request(
             session, "POST", f"{prov.BASE}/chat/completion",
             provider="deepseek", headers=prov._headers(pow_response),
             json={
                 "chat_session_id": chat_id,
                 "parent_message_id": None,
-                "prompt": "Назови три планеты, каждую с новой строки.",
+                "prompt": "Назови три планеты. Сначала коротко подумай.",
                 "ref_file_ids": [],
-                "thinking_enabled": False,
+                "thinking_enabled": True,
                 "search_enabled": False,
             },
             cookies=prov._cookies, timeout=(15, 120), stream=True)
-        print("HTTP", resp.status_code,
-              " content-type:", resp.headers.get("content-type"))
-        print("--- первые кадры ---")
-        shown = 0
+        print("HTTP", resp.status_code)
+        text_run = 0
         for line in resp.iter_lines():
             if not line:
                 continue
-            text = line.decode("utf-8", "replace") if isinstance(line, bytes) else line
-            print(repr(text[:220]))
-            shown += 1
-            if shown >= 30:
-                break
+            s = line.decode("utf-8", "replace") if isinstance(line, bytes) else line
+            if s.startswith("data: "):
+                body = s[6:]
+                try:
+                    data = json.loads(body)
+                except ValueError:
+                    continue
+                # Чистый {"v": "строка"} — это добавка текста, сворачиваем.
+                if isinstance(data, dict) and set(data) == {"v"} and isinstance(data["v"], str):
+                    text_run += 1
+                    continue
+                if text_run:
+                    print(f"      …{text_run} кадров-добавок…")
+                    text_run = 0
+                print(json.dumps(data, ensure_ascii=False)[:600])
+            else:
+                if text_run:
+                    print(f"      …{text_run} кадров-добавок…")
+                    text_run = 0
+                print(repr(s))
         resp.close()
 
 
